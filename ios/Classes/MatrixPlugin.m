@@ -49,13 +49,41 @@
         }];
     } else if ([@"registerWithLoginTypeUsernamePwd" isEqualToString:call.method]) {
         /// register 注册
-        [self.mxRestClient registerWithLoginType:kMXLoginFlowTypePassword username:param[@"username"] password:param[@"password"] success:^(MXCredentials *credentials) {
+        [self.mxRestClient registerWithLoginType:kMXLoginFlowTypeDummy username:param[@"username"] password:param[@"password"] success:^(MXCredentials *credentials) {
             NSLog(@"registerWithLoginTypeUsernamePwd : %@", credentials.mj_JSONObject);
             result(credentials.mj_JSONObject);
         } failure:^(NSError *error) {
             NSLog(@"loginWithLoginType Error : %@",error.description);
-            result(@{@"error":@"register Error"});
+            result(@{@"error":@"registerWithLoginType Error"});
         }];
+        
+    } else if ([@"registerWithParameters" isEqualToString:call.method]) {
+        // 先获取session
+        [self.mxRestClient getRegisterSession:^(MXAuthenticationSession *authSession) {
+            NSLog(@"getRegisterSession : %@", authSession.mj_JSONObject);
+            /// register 注册
+            NSDictionary *parameters = @{@"auth": @{
+                @"session": authSession.session,
+                @"type": kMXLoginFlowTypeDummy
+            },
+                                         @"username": param[@"username"],
+                                         @"password": param[@"password"],
+                                         @"bind_email": @(NO),
+                                         @"initial_device_display_name":param[@"deviceDisplayName"]
+            };
+            [self.mxRestClient registerWithParameters:parameters success:^(NSDictionary *JSONResponse) {
+                NSLog(@"registerWithParameters : %@", JSONResponse.mj_JSONObject);
+                result(JSONResponse.mj_JSONObject);
+            } failure:^(NSError *error) {
+                NSLog(@"registerWithParameters Error : %@",error.description);
+                result(@{@"error":@"registerWithParameters Error"});
+            }];
+//            result(authSession.mj_JSONObject);
+        } failure:^(NSError *error) {
+            NSLog(@"registerWithParameters getRegisterSession Error : %@",error.description);
+            result(@{@"error":@"registerWithParameters getRegisterSession Error"});
+        }];
+        
         
     } else if ([@"testUserRegistration" isEqualToString:call.method]) {
         [self.mxRestClient testUserRegistration:param[@"username"] callback:^(MXError *mxError) {
@@ -63,6 +91,7 @@
             result(mxError.mj_JSONObject);
         }];
     }else if ([@"isUsernameAvailable" isEqualToString:call.method]) {
+        
         [self.mxRestClient isUsernameAvailable:param[@"username"] success:^(MXUsernameAvailability *availability) {
             NSLog(@"isUsernameAvailable : %@", availability.mj_JSONObject);
             result(availability.mj_JSONObject);
